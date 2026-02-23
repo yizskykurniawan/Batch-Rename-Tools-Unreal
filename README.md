@@ -27,7 +27,7 @@ for i, asset in enumerate(selected_assets):
         folder = old_path.rsplit('/', 1)[0]
         new_path = f"{folder}/{new_name}"
         unreal.EditorAssetLibrary.rename_asset(old_path, new_path)
-        unreal.log(f"Asset {old_path} diubah jadi {new_name}")
+        unreal.log(f"Asset {old_path} change log {new_name}")
 ```
 
 Second Script for Export Naming Mesh (Maya)
