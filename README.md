@@ -1,4 +1,4 @@
-## Batch Rename Tools Unreal Engine 5
+## Batch Rename Tools for Unreal Engine 5
 
 This script based Python Language to escalate renaming process using Maya to Unreal.
 The implementation by using index in outliner maya and then export naming each mesh, apply this script by selected first and end index.
