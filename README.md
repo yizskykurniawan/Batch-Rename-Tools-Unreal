@@ -9,7 +9,7 @@ import unreal
 
 selected_assets = unreal.EditorUtilityLibrary.get_selected_assets()
 
-# This important things to bacth rename in unreal to get this use Export Naming Mesh Script for Maya:
+# This important component to run bacth rename in unreal to get each naming, use Export Naming Mesh Script for Maya
 new_names = [
     "00_SM_P_pSphere1",
     "01_SM_P_pCube1",
