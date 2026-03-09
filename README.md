@@ -224,61 +224,101 @@ Newer Version, Auto copy into new names. Try it below!
 import maya.cmds as cmds
 from PySide2 import QtWidgets, QtCore, QtGui
 
-def format_as_python_list(obj_list, start_zero=True, fmt="Index_SM_P_Name"):
-    """Wraps names in quotes and brackets for direct pasting into Unreal's Python API."""
+def generate_full_unreal_script(obj_list, start_zero=True, prefix="SM_P"):
+    """Creates the entire Unreal Python script as a single string."""
     start_index = 0 if start_zero else 1
     
-    # Header for the Python list
-    lines = ["new_names = ["]
+    unreal_script = [
+        "import unreal",
+        "",
+        "selected_assets = unreal.EditorUtilityLibrary.get_selected_assets()",
+        "",
+        "# Generated from Maya Export Tool",
+        "new_names = ["
+    ]
     
     for i, obj in enumerate(obj_list):
         idx = i + start_index
-        
-        # Construct the naming string based on format
-        if fmt == "Index_SM_P_Name":
-            name_str = f"{idx:02d}_SM_P_{obj}"
-        elif fmt == "Name (Index)":
-            name_str = f"{obj}_{idx:02d}"
-        else:
-            name_str = f"{idx:02d}_{obj}"
-            
-        # Add indentation and quotes
-        lines.append(f'    "{name_str}",')
+        name_str = f"{idx:02d}_{prefix}_{obj}"
+        unreal_script.append(f'    "{name_str}",')
     
-    lines.append("]")
-    return "\n".join(lines)
+    unreal_script.extend([
+        "]",
+        "",
+        "for i, asset in enumerate(selected_assets):",
+        "    if i < len(new_names):",
+        "        new_name = new_names[i]",
+        "        old_path = asset.get_path_name()",
+        "        folder = old_path.rsplit('/', 1)[0]",
+        "        new_path = f'{folder}/{new_name}'",
+        "        ",
+        "        if old_path != new_path:",
+        "            unreal.EditorAssetLibrary.rename_asset(old_path, new_path)",
+        "            print(f'Renamed: {new_name}')",
+        "    else:",
+        "        print('Warning: More assets selected than names provided.')"
+    ])
+    
+    return "\n".join(unreal_script)
 
-class UnrealBridgeUI(QtWidgets.QWidget):
+class UnrealScriptGenerator(QtWidgets.QWidget):
     def __init__(self):
-        super(UnrealBridgeUI, self).__init__()
-        self.setWindowTitle("Maya to Unreal: Copy List")
-        self.setFixedSize(300, 220)
+        super(UnrealScriptGenerator, self).__init__()
+        self.setWindowTitle("Maya to Unreal Bridge")
+        self.setFixedSize(300, 420)
         
         layout = QtWidgets.QVBoxLayout(self)
 
-        # Options
-        self.startZeroCB = QtWidgets.QCheckBox("Start at 00")
+        # --- SETTINGS SECTION ---
+        layout.addWidget(QtWidgets.QLabel("<b>General Settings:</b>"))
+        
+        self.startZeroCB = QtWidgets.QCheckBox("Start Index from 00")
         self.startZeroCB.setChecked(True)
         layout.addWidget(self.startZeroCB)
 
-        self.formatMenu = QtWidgets.QComboBox()
-        self.formatMenu.addItems(["Index_SM_P_Name", "Name_Index", "Index_Name"])
-        layout.addWidget(QtWidgets.QLabel("Naming Format:"))
-        layout.addWidget(self.formatMenu)
+        layout.addSpacing(5)
+        layout.addWidget(QtWidgets.QLabel("Custom Prefix:"))
+        
+        prefix_layout = QtWidgets.QHBoxLayout()
+        self.prefixEdit = QtWidgets.QLineEdit("SM_P")
+        self.btn_reset = QtWidgets.QPushButton("Reset")
+        self.btn_reset.setFixedWidth(50)
+        self.btn_reset.clicked.connect(lambda: self.prefixEdit.setText("SM_P"))
+        
+        prefix_layout.addWidget(self.prefixEdit)
+        prefix_layout.addWidget(self.btn_reset)
+        layout.addLayout(prefix_layout)
 
-        layout.addSpacing(15)
+        layout.addSpacing(20)
+        line = QtWidgets.QFrame(); line.setFrameShape(QtWidgets.QFrame.HLine)
+        layout.addWidget(line)
+        layout.addSpacing(10)
 
-        # Action Buttons
-        btn_copy_mesh = QtWidgets.QPushButton("Copy Mesh List for Unreal")
-        btn_copy_mesh.setStyleSheet("background-color: #3d4c5c; height: 40px; font-weight: bold;")
-        btn_copy_mesh.clicked.connect(lambda: self.process_and_copy("mesh"))
-        layout.addWidget(btn_copy_mesh)
+        # --- ACTIONS SECTION ---
+        layout.addWidget(QtWidgets.QLabel("<b>Export Actions:</b>"))
+        
+        self.btn_mesh = QtWidgets.QPushButton("COPY FULL UNREAL SCRIPT\n(Selected Meshes)")
+        self.btn_mesh.setMinimumHeight(60)
+        self.btn_mesh.setStyleSheet("background-color: #354a3b; font-weight: bold; color: #e0e0e0;")
+        self.btn_mesh.clicked.connect(lambda: self.execute_copy("mesh"))
+        layout.addWidget(self.btn_mesh)
 
-        btn_copy_grp = QtWidgets.QPushButton("Copy Group List for Unreal")
-        btn_copy_grp.clicked.connect(lambda: self.process_and_copy("group"))
-        layout.addWidget(btn_copy_grp)
+        layout.addSpacing(10)
 
-    def process_and_copy(self, mode):
+        self.btn_grp = QtWidgets.QPushButton("COPY FULL UNREAL SCRIPT\n(Selected Groups)")
+        self.btn_grp.setMinimumHeight(60)
+        self.btn_grp.setStyleSheet("font-weight: bold;")
+        self.btn_grp.clicked.connect(lambda: self.execute_copy("group"))
+        layout.addWidget(self.btn_grp)
+        
+        layout.addStretch()
+        
+        footer = QtWidgets.QLabel("Pastes directly into Unreal Python Editor")
+        footer.setStyleSheet("font-size: 9px; color: #888;")
+        footer.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(footer)
+
+    def execute_copy(self, mode):
         items = []
         if mode == "mesh":
             sel = cmds.ls(selection=True, dag=True, type="mesh")
@@ -289,29 +329,29 @@ class UnrealBridgeUI(QtWidgets.QWidget):
             items = [t for t in sel if not cmds.listRelatives(t, shapes=True)]
 
         if not items:
-            QtWidgets.QMessageBox.warning(self, "Selection Error", f"Please select at least one {mode}!")
+            QtWidgets.QMessageBox.warning(self, "Selection Error", f"No {mode} items selected!")
             return
 
-        # Generate the formatted string
-        formatted_list = format_as_python_list(
+        full_code = generate_full_unreal_script(
             items, 
             self.startZeroCB.isChecked(), 
-            self.formatMenu.currentText()
+            self.prefixEdit.text()
         )
 
-        # Copy to clipboard
         clipboard = QtWidgets.QApplication.clipboard()
-        clipboard.setText(formatted_list)
+        clipboard.setText(full_code)
         
-        # Feedback
-        print(f"// Copied {len(items)} items to clipboard for Unreal //")
+        QtWidgets.QMessageBox.information(self, "Success", f"Script for {len(items)} items copied!")
 
 def show_ui():
-    global unrealBridgeWin
-    try: unrealBridgeWin.close()
-    except: pass
-    unrealBridgeWin = UnrealBridgeUI()
-    unrealBridgeWin.show()
+    global mayaToUnrealWin
+    try:
+        mayaToUnrealWin.close()
+        mayaToUnrealWin.deleteLater()
+    except:
+        pass
+    mayaToUnrealWin = UnrealScriptGenerator()
+    mayaToUnrealWin.show()
 
 show_ui()
 ```
