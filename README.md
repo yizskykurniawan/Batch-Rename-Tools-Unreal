@@ -359,6 +359,7 @@ show_ui()
 ```
 ### Comparison Effectivity
 Between each other method for Renaming Static Mesh in Unreal.
-<img width="1318" height="762" alt="image" src="https://github.com/user-attachments/assets/7d4ec750-efc1-436e-be8b-9f06c0ee2e87" />
+<img width="1318" height="762" alt="image" src="https://github.com/user-attachments/assets/894f48e6-bc50-4bd9-b3b4-a313b13399dd" />
+
 
 
