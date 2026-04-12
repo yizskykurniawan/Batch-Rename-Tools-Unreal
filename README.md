@@ -367,7 +367,7 @@ class UnrealScriptGenerator(QtWidgets.QWidget):
         layout.addWidget(footer)
 
     def execute_copy(self, mode):
-        # This uses your original logic exactly
+        # Old Logic
         items = []
         if mode == "mesh":
             sel = cmds.ls(selection=True, dag=True, type="mesh")
