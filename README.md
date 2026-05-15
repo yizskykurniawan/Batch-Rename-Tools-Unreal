@@ -31,7 +31,7 @@ for i, asset in enumerate(selected_assets):
         unreal.EditorAssetLibrary.rename_asset(old_path, new_path)
         unreal.log(f"Asset {old_path} change log {new_name}")
 ```
-### Batch Rename UE v2.0 (Use in Maya) - New Method
+### Batch Rename UE v2.0.1 (Use in Maya) - New Method
 Newer Version, Auto copy into new names. Try it below!
 ```ruby
 import maya.cmds as cmds
